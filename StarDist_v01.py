@@ -1,5 +1,427 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+from skimage import io, feature, filters, color, util, morphology, exposure, segmentation, img_as_float
+from skimage.filters import unsharp_mask
+from skimage.measure import label, regionprops, perimeter, find_contours
+from skimage.morphology import medial_axis, skeletonize, convex_hull_image, binary_dilation, black_tophat, diameter_closing
+from skimage.transform import rescale, resize, downscale_local_mean, rotate
+
+from glob import glob
+
+import imageio as iio
+
+import scipy
+from scipy import ndimage as ndi
+
+from PIL import Image, ImageEnhance 
+
+import cv2 as cv
+
+import math
+
+# ---------------------------------------------------------
+#               0. Pre-Processing Images
+#----------------------------------------------------------
+
+# IDEA:
+#     1. Read image
+#     2. Convert to gray
+#     3. Use edge dector to isolate group of stems
+#     4. Get BW and invert it to perform watershed
+#     5. Use output as labels 
+
+
+# # 1. 
+
+# Gather the image files (change path)
+Images = io.ImageCollection(r'.\Sample_Images\*.JPG')
+
+# Read and visualize the image
+rgb0 = Images[0]
+# plt.imshow(rgb0)
+
+
+# # 2.
+
+# # Convert to gray
+# gray0 = rgb0 @ [0.2126, 0.7152, 0.0722]
+# # plt.imshow(gray0, cmap = 'gray')
+
+
+# # Compute the Canny filter for two values of sigma
+# # edges1 = feature.canny(gray0, sigma=1)
+# edges1 = feature.canny(gray0, low_threshold = 0, high_threshold = 100)
+# edges2 = feature.canny(gray0, sigma = 0.9, low_threshold = 0, high_threshold = 100)
+
+# fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
+# ax = axes.ravel()
+# ax[0].imshow(gray0, cmap='gray')
+# ax[0].set_title('Original Gray', fontsize=20)
+# ax[1].imshow(edges1, cmap='gray')
+# ax[1].set_title(r'Canny filter 1', fontsize=20)
+# ax[2].imshow(edges2, cmap='gray')
+# ax[2].set_title(r'Canny filter  2', fontsize=20)
+# fig.tight_layout()
+# plt.show()
+
+
+# 3....
+
+
+
+
+
+
+# IDEA: 
+#     1. Convert to gray
+#     2. Detect edges (0 - 0.85)
+#     3. Dilate edges to select ROI (there should be a faster way)
+#     4. Apply mask to gray (and improve it?)
+#     5. Use stardist's pretrained models
+
+
+
+# Gather the image files (change path)
+Images = io.ImageCollection(r'.\Sample_Images\*.JPG')
+
+# Read and visualize the image
+rgb0 = Images[0]
+# plt.imshow(rgb0)
+
+
+gray0 = rgb0 @ [0.2126, 0.7152, 0.0722]
+plt.imshow(gray0, cmap = 'gray')
+
+gray0 = gray0/255
+
+edges = feature.canny(gray0, low_threshold = 0, high_threshold = .85)
+plt.imshow(edges, cmap = 'gray')
+
+dilated = binary_dilation(edges, selem=morphology.diamond(50), out=None)
+plt.imshow(dilated, cmap = 'gray')
+
+gray1 = np.asarray(dilated)
+gray1 = np.where(dilated, gray0, 0)
+# gray1 = np.where(dilated[...,None], rgb0, 0)
+plt.imshow(gray1, cmap = 'gray')
+
+# img_adapteq = exposure.equalize_adapthist(gray1, clip_limit=0.03)
+# plt.imshow(img_adapteq, cmap='gray')
+
+
+# prints a list of available models 
+# StarDist2D.from_pretrained() 
+
+# creates a pretrained model
+model_0 = StarDist2D.from_pretrained('2D_versatile_fluo')
+model_1 = StarDist2D.from_pretrained('2D_versatile_he')
+model_2 = StarDist2D.from_pretrained('2D_paper_dsb2018')
+model_3 = StarDist2D.from_pretrained('2D_demo')
+
+
+
+labels_0, _ = model_0.predict_instances(gray1)
+# labels_1, _ = model_1.predict_instances(gray1)
+labels_2, _ = model_2.predict_instances(gray1)
+labels_3, _ = model_3.predict_instances(gray1)
+
+# plt.imshow(labels_0, cmap = lbl_cmap)
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 4), sharex=True, sharey=True)
+ax = axes.ravel()
+ax[0].imshow(gray0, cmap = 'gray')
+ax[0].set_title('Original Gray', fontsize=20)
+ax[1].imshow(labels_0, cmap = lbl_cmap)
+ax[1].set_title(r'2D_versatile_fluo', fontsize=20)
+ax[2].imshow(labels_2, cmap = lbl_cmap)
+ax[2].set_title(r'2D_paper_dsb2018', fontsize=20)
+ax[3].imshow(labels_3, cmap = lbl_cmap)
+ax[3].set_title(r'2D_demo', fontsize=20)
+fig.tight_layout()
+plt.show()
+
+
+
+# We need to ENHANCE the gray image!!!
+
+from skimage.filters import try_all_threshold
+
+# Here, we specify a radius for local thresholding algorithms.
+# If it is not specified, only global algorithms are called.
+fig, ax = try_all_threshold(gray1, figsize=(10, 8), verbose=False)
+plt.show()
+
+
+
+
+
+
+
+
+import scipy
+from scipy import ndimage
+import matplotlib.pyplot as plt
+
+f = scipy.misc.face(gray=True).astype(float)
+blurred_f = gray1
+     
+filter_blurred_f = ndimage.gaussian_filter(blurred_f, 1)
+filter_blurred_f2 = ndimage.gaussian_filter(blurred_f, 8)
+# filter_blurred_f2 = ndimage.gaussian_filter(blurred_f, 3, order=0, output=None, mode='reflect', cval=0.0, truncate=4.0)
+
+alpha = 30
+sharpened = blurred_f + alpha * (blurred_f - filter_blurred_f)
+sharpened2 = blurred_f + alpha * (blurred_f - filter_blurred_f2)
+
+
+fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
+ax = axes.ravel()
+ax[0].imshow(gray1, cmap = 'gray')
+ax[0].set_title('Original Gray', fontsize=20)
+ax[1].imshow(sharpened, cmap = 'gray')
+ax[2].imshow(sharpened2, cmap = 'gray')
+
+fig.tight_layout()
+plt.show()
+
+
+
+
+
+gray1 = sharpened2
+gray1 = abs(gray1)
+# gray1 *= (1.0/gray1.max())
+edges = feature.canny(gray1, 2, low_threshold = 0, high_threshold = .55)
+plt.imshow(edges, cmap = 'gray')
+
+gray1 = img_adapteq
+
+gray1 = np.asarray(dilated)
+gray1 = np.where(dilated, gray0, 0)
+# gray1 = np.where(dilated[...,None], rgb0, 0)
+plt.imshow(abs(gray1), cmap = 'gray')
+
+
+
+
+img_adapteq = exposure.equalize_adapthist(gray1, clip_limit=0.03)
+plt.imshow(img_adapteq, cmap='gray')
+
+# Set image threshold
+T = filters.threshold_otsu(gray1)
+
+# Segment gray image
+bw0 = img_adapteq > T
+plt.imshow(bw0, cmap='gray')
+
+# Remove anything greater than n pixels
+large_objects = morphology.remove_small_objects(bw0, 100000, connectivity=2, in_place=False) # 
+plt.imshow(large_objects, cmap='gray')
+
+bw0 = bw0.astype(int) - large_objects.astype(int)
+plt.imshow(bw0, cmap='gray')
+bw0 = bw0.astype(bool)
+# gray2 = np.asarray(bw0)
+# gray2 = np.where(bw0, gray0, 0)
+# plt.imshow(gray2, cmap='gray')
+
+
+
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4), sharex=True, sharey=True)
+ax = axes.ravel()
+ax[0].imshow(gray0, cmap = 'gray')
+ax[0].set_title('Original Gray', fontsize=20)
+ax[1].imshow(bw0, cmap = 'gray')
+ax[1].set_title(r'2D_versatile_fluo', fontsize=20)
+
+
+
+# Get labels
+labels, num_blobs = label(bw0, return_num = True)
+
+props_blobs = regionprops(labels)
+# properties = ['area', 'eccentricity', 'perimeter', 'mean_intensity']
+
+# Create lists
+Images_Names = []
+ROIs = []
+Areas = []
+Circularitys = []
+Eccentricitys = []
+
+for prop in props:
+    # ROI = prop.label
+    Area = props[prop].area
+    Perimeter = props[prop].perimeter
+    Circularity = (4 * np.pi * props.area) / (props.perimeter ** 2)
+    Eccentricity = props.eccentricity
+    
+# Loop through the spikes in image     
+for ind,props in enumerate(props_blobs):
+    ROI = props.label
+    Area = props.area
+    Circularity = (4 * np.pi * props.area) / (props.perimeter ** 2)
+    Eccentricity = props.eccentricity
+    
+    # Image_Name = i
+    # Image_Name = Image_Name.split('\\')[-1]        
+    
+    # Images_Names.append(Image_Name)
+    ROIs.append(ROI)
+    Areas.append(Area)
+    Circularitys.append(Circularity)
+    Eccentricitys.append(Eccentricity)
+
+# plt.imshow(labels, cmap = lbl_cmap)
+
+
+
+# # Set image threshold
+# T = filters.threshold_otsu(gray1)
+
+# # Segment gray image
+# bw0 = gray1 > T 
+# plt.imshow(bw0, cmap = 'gray')
+
+# # Remove anything greater than n pixels
+# large_objects = morphology.remove_small_objects(bw0, 15000, connectivity=2, in_place=False) # 
+# plt.imshow(large_objects, cmap='gray')
+
+# bw1 = bw0.astype(int) - large_objects.astype(int)
+# plt.imshow(bw1, cmap='gray')
+
+
+
+
+# from skimage.filters import threshold_minimum
+# thresh_min = threshold_minimum(gray1)
+# binary_min = gray1 > thresh_min
+# plt.imshow(binary_min, cmap='gray')
+
+
+
+
+# closed_attr = diameter_closing(edges, 50, connectivity=1)
+# plt.imshow(closed_attr, cmap = 'gray')
+
+# bw = black_tophat(dilated, selem=None, out=None)
+# plt.imshow(bw, cmap = 'gray')
+
+# dilated = binary_dilation(edges, selem=morphology.disk(2), out=None)
+# plt.imshow(dilated, cmap = 'gray')
+
+# chull = convex_hull_image(edges)
+# plt.imshow(edges, cmap = 'gray')
+
+
+
+# sharp = unsharp_mask(edges, radius=1, amount=10)
+# plt.imshow(sharp, cmap='gray')
+
+# # RGB enhancement
+# img0 = Image.fromarray(gray0)
+# img1 = ImageEnhance.Color(img0)
+# # Sharpness (Good ~20 or higher)
+# img2 = ImageEnhance.Sharpness(img1)
+
+# closed = morphology.closing(edges, out=None)
+# io.imshow(closed)
+
+# large_objects = morphology.remove_small_objects(closed, 1000, connectivity=4, in_place=False) # 
+# plt.imshow(large_objects, cmap='gray')
+
+# # Fill holes
+# skel1 = scipy.ndimage.morphology.binary_fill_holes(edges)
+# plt.imshow(skel1, cmap = 'gray')
+
+# # Structural element
+# # se0 = morphology.disk(2)    # use diamond(30) if RGB is at 100% size
+# # io.imshow(se0)
+
+# # Dilation
+# # dilated = morphology.closing(edges, selem=se0, out=None)
+# # io.imshow(dilated)
+    
+
+
+
+
+
+
+#########   Find the intersection of two segmentations
+
+from skimage.filters import sobel
+from skimage.measure import label
+from skimage.segmentation import slic, join_segmentations, watershed
+from skimage.color import label2rgb
+from skimage import data
+
+gray0 = rgb0 @ [0.2126, 0.7152, 0.0722]
+
+# Make segmentation using edge-detection and watershed.
+edges = sobel(gray1)
+plt.imshow(edges, cmap = 'gray')
+
+
+
+# Identify some background and foreground pixels from the intensity values.
+# These pixels are used as seeds for watershed.
+markers = np.zeros_like(gray1)
+foreground, background = 1, 2
+markers[gray0 < 50.0] = background
+markers[gray0 > 150.0] = foreground
+
+ws = watershed(edges, markers)
+seg1 = label(ws == foreground)
+plt.imshow(seg1, cmap = 'gray')
+
+# Make segmentation using SLIC superpixels.
+seg2 = slic(gray0, n_segments=117, max_iter=160, sigma=1, compactness=0.75,
+            multichannel=False, start_label=0)
+plt.imshow(seg2, cmap = 'gray')
+
+
+# Combine the two.
+segj = join_segmentations(seg1, seg2)
+
+# Show the segmentations.
+fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(9, 5),
+                         sharex=True, sharey=True)
+ax = axes.ravel()
+ax[0].imshow(gray0, cmap='gray')
+ax[0].set_title('Image')
+
+color1 = label2rgb(seg1, image=gray0, bg_label=0)
+ax[1].imshow(color1)
+ax[1].set_title('Sobel+Watershed')
+
+color2 = label2rgb(seg2, image=gray0, image_alpha=0.5, bg_label=-1)
+ax[2].imshow(color2)
+ax[2].set_title('SLIC superpixels')
+
+color3 = label2rgb(segj, image=gray0, image_alpha=0.5, bg_label=-1)
+ax[3].imshow(color3)
+ax[3].set_title('Join')
+
+for a in ax:
+    a.axis('off')
+fig.tight_layout()
+plt.show()
+
+
+
+
+
+
+
+
+
+
 
 # # Install TensorFlow
 # pip install tensorflow
@@ -22,7 +444,7 @@ StarDist2D.from_pretrained()
 # creates a pretrained model
 model = StarDist2D.from_pretrained('2D_versatile_fluo')
 
-labels, _ = model.predict_instances(img)
+labels, _ = model.predict_instances(bw0)
 
 
 
@@ -53,7 +475,7 @@ from skimage import io
 from skimage.transform import rescale, resize, downscale_local_mean
 
 # Gather the image files (change path)
-Images = io.ImageCollection(r'.\Test_Images\*.JPG')
+Images = io.ImageCollection(r'.\Sample_Images\*.JPG')
 
 
 # Read and visualize the image
@@ -75,6 +497,7 @@ plt.imshow(gray1, cmap = 'gray')
 
 # img_adapteq = exposure.equalize_adapthist(gray0, clip_limit=0.03)
 # plt.imshow(img_adapteq, cmap='gray')
+gray0 = gray0/255
 
 labels, _ = model.predict_instances(gray1)
 plt.imshow(labels, cmap = lbl_cmap)
