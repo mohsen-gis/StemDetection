@@ -22,14 +22,14 @@ def hough_circle(impath, min_dist, max_radius):
         
     return output, detected_circles # output is the orig image with cirlcles drawn on it
 
-
-directory = r'/Users/mohsen/Downloads' # path to the images
+directory = r'/Users/mohsen/Downloads/IWG_stem_img' # path to the images
 labels = []
 for filename in os.listdir(directory):
-    if filename.endswith(".jpg"):
+    print(filename)
+    if filename.lower().endswith(".jpg"):
         annotated_img, circles = hough_circle(os.path.join(directory,filename), 70, 50)
         labels.append([filename, annotated_img, circles, len(circles[0, :])]) 
-
+        
 
 # figure(figsize=(10, 10))
 # plt.imshow(labels[3][1], interpolation='none', aspect='auto')
