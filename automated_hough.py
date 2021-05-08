@@ -7,14 +7,14 @@ import matplotlib.pyplot as plt
 import os
 
 
-def hough_circle(impath):
+def hough_circle(impath, min_dist, max_radius):
     img = cv.imread(impath)
     output = img.copy()
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     gray = cv.medianBlur(gray, 5)
     edges = cv.Canny(gray,50,150,apertureSize = 3)
-    circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, 1, 70,
-                              param1=50, param2=30, minRadius=0, maxRadius=50)
+    circles = cv.HoughCircles(edges, cv.HOUGH_GRADIENT, 1, min_dist,
+                              param1=50, param2=30, minRadius=0, maxRadius=max_radius)
     detected_circles = np.uint16(np.around(circles)) # its a list of circle parameters (x, y ,radius)
     for (x, y ,r) in detected_circles[0, :]:
         cv.circle(output, (x, y), r, (255, 0, 0), 3)
@@ -27,7 +27,7 @@ directory = r'/Users/mohsen/Downloads' # path to the images
 labels = []
 for filename in os.listdir(directory):
     if filename.endswith(".jpg"):
-        annotated_img, circles = hough_circle(os.path.join(directory,filename))
+        annotated_img, circles = hough_circle(os.path.join(directory,filename), 70, 50)
         labels.append([filename, annotated_img, circles, len(circles[0, :])]) 
 
 
