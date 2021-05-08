@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from skimage import io, feature, filters, color, util, morphology, exposure, segmentation, img_as_float
 from skimage.filters import unsharp_mask
 from skimage.measure import label, regionprops, perimeter, find_contours
-from skimage.morphology import medial_axis, skeletonize, convex_hull_image, binary_dilation, black_tophat, diameter_closing
+from skimage.morphology import medial_axis, skeletonize, convex_hull_image, binary_dilation, black_tophat, diameter_closing, area_opening, erosion, dilation, opening, closing, white_tophat
 from skimage.transform import rescale, resize, downscale_local_mean, rotate
 
 from glob import glob
@@ -98,16 +98,61 @@ plt.imshow(gray0, cmap = 'gray')
 
 gray0 = gray0/255
 
-edges = feature.canny(gray0, low_threshold = 0, high_threshold = .85)
+edges = feature.canny(gray0, .8, low_threshold = .05, high_threshold = .5)
+plt.subplot(121)
 plt.imshow(edges, cmap = 'gray')
+plt.subplot(122)
+plt.imshow(gray0, cmap = 'gray')
 
-dilated = binary_dilation(edges, selem=morphology.diamond(50), out=None)
+
+# Remove anything greater than n pixels
+bw = morphology.remove_small_objects(edges, 15, connectivity=2, in_place=False) # 
+plt.imshow(bw, cmap='gray')
+
+bw0 = binary_min.astype(int) - large_objects.astype(int)
+plt.imshow(bw0, cmap='gray')
+
+
+closed = morphology.binary_closing(edges, out=None)
+io.imshow(closed)
+opened = morphology.binary_closing(edges, out=None)
+io.imshow(opened)
+plt.subplot(121)
+plt.imshow(closed, cmap = 'gray')
+plt.subplot(122)
+plt.imshow(opened, cmap = 'gray')
+
+
+dilated = binary_dilation(closed, selem=morphology.diamond(1), out=None)
 plt.imshow(dilated, cmap = 'gray')
+
+selem = morphology.disk(1)
+eroded = erosion(dilated, selem)
+opened = opening(dilated)
+w_tophat = white_tophat(edges, selem)
+plt.imshow(w_tophat, cmap = 'gray')
+
+skel1 = scipy.ndimage.morphology.binary_fill_holes(dilated)
+plt.imshow(skel1, cmap = 'gray')
+
+# Remove anything greater than n pixels
+large_objects = morphology.remove_small_objects(dilated, 1000, connectivity=2, in_place=False) # 
+plt.imshow(large_objects, cmap='gray')
+
+bw0 = binary_min.astype(int) - large_objects.astype(int)
+plt.imshow(bw0, cmap='gray')
+
+
 
 gray1 = np.asarray(dilated)
 gray1 = np.where(dilated, gray0, 0)
 # gray1 = np.where(dilated[...,None], rgb0, 0)
 plt.imshow(gray1, cmap = 'gray')
+
+edges1 = feature.canny(gray1, 0.3, low_threshold = 0, high_threshold = 1)
+plt.imshow(edges1, cmap = 'gray')
+
+
 
 # img_adapteq = exposure.equalize_adapthist(gray1, clip_limit=0.03)
 # plt.imshow(img_adapteq, cmap='gray')
@@ -123,17 +168,20 @@ model_2 = StarDist2D.from_pretrained('2D_paper_dsb2018')
 model_3 = StarDist2D.from_pretrained('2D_demo')
 
 
+gray2 = rescale(gray1, 0.6, anti_aliasing=False)
+plt.imshow(gray2, cmap = 'gray')
 
-labels_0, _ = model_0.predict_instances(gray1)
-# labels_1, _ = model_1.predict_instances(gray1)
-labels_2, _ = model_2.predict_instances(gray1)
-labels_3, _ = model_3.predict_instances(gray1)
+
+labels_0, _ = model_0.predict_instances(gray2)
+# labels_1, _ = model_1.predict_instances(gray2)
+labels_2, _ = model_2.predict_instances(gray2)
+labels_3, _ = model_3.predict_instances(gray2)
 
 # plt.imshow(labels_0, cmap = lbl_cmap)
 
 fig, axes = plt.subplots(2, 2, figsize=(12, 4), sharex=True, sharey=True)
 ax = axes.ravel()
-ax[0].imshow(gray0, cmap = 'gray')
+ax[0].imshow(gray2, cmap = 'gray')
 ax[0].set_title('Original Gray', fontsize=20)
 ax[1].imshow(labels_0, cmap = lbl_cmap)
 ax[1].set_title(r'2D_versatile_fluo', fontsize=20)

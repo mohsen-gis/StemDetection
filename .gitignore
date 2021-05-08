@@ -1,3 +1,10 @@
-# Ignore images for testing
+# Folders
 Sample_Images/
 ground_truth/
+Good Imagery/
+CroppedStems/
+
+# Scripts
+StarDist_v01.py
+StarDist_v02.py
+hough_circles_v02.py
