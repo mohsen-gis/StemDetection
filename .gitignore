@@ -8,3 +8,9 @@ CroppedStems/
 StarDist_v01.py
 StarDist_v02.py
 hough_circles_v02.py
+models/stardist/logs/images/events.out.tfevents.1620500993.UMN201955873.26876.138226.v2
+models/stardist/logs/train/events.out.tfevents.1620500995.UMN201955873.26876.138271.v2
+models/stardist/logs/validation/events.out.tfevents.1620501239.UMN201955873.26876.141282.v2
+models/stardist/weights_best.h5
+models/stardist/weights_now.h5
+models/stardist/config.json

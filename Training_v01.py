@@ -108,13 +108,13 @@ def plot_img_label(img, lbl, img_title="image", lbl_title="label", **kwargs):
     al.set_title(lbl_title)
     plt.tight_layout()
 
-# Example image
-i = min(9, len(X)-1)
-img, lbl = X[i], Y[i]
-assert img.ndim in (2,3)
-img = img if (img.ndim==2 or img.shape[-1]==3) else img[...,0]
-plot_img_label(img,lbl)
-# None;
+# # Example image
+# i = min(9, len(X)-1)
+# img, lbl = X[i], Y[i]
+# assert img.ndim in (2,3)
+# img = img if (img.ndim==2 or img.shape[-1]==3) else img[...,0]
+# plot_img_label(img,lbl)
+# # None;
 
 
 
@@ -126,13 +126,11 @@ plot_img_label(img,lbl)
 print(Config2D.__doc__)
 
 
-
-
-# 32 is a good default choice (see 1_data.ipynb)
-n_rays = 32
+# 16 is a good default choice (see 1_data.ipynb)
+n_rays = 16
 
 # Use OpenCL-based computations for data generator during training (requires 'gputools')
-use_gpu = False and gputools_available()
+use_gpu = True and gputools_available()
 
 # Predict on subsampled grid for increased efficiency and larger field of view
 grid = (2,2)
@@ -207,11 +205,11 @@ def augmenter(x, y):
 
 
 # plot some augmented examples
-img, lbl = X[0],Y[0]
-plot_img_label(img, lbl)
-for _ in range(3):
-    img_aug, lbl_aug = augmenter(img,lbl)
-    plot_img_label(img_aug, lbl_aug, img_title="image augmented", lbl_title="label augmented")
+# img, lbl = X[0],Y[0]
+# plot_img_label(img, lbl)
+# for _ in range(3):
+#     img_aug, lbl_aug = augmenter(img,lbl)
+#     plot_img_label(img_aug, lbl_aug, img_title="image augmented", lbl_title="label augmented")
 
 
 
